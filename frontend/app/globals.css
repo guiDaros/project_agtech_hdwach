@@ -1,0 +1,119 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Paleta de cores mais sutil e profissional para agricultura */
+  --background: oklch(0.99 0.005 120);
+  --foreground: oklch(0.15 0.01 140);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 140);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 140);
+  --primary: oklch(0.55 0.15 145);
+  --primary-foreground: oklch(0.99 0.005 120);
+  --secondary: oklch(0.96 0.01 130);
+  --secondary-foreground: oklch(0.15 0.01 140);
+  --muted: oklch(0.96 0.01 130);
+  --muted-foreground: oklch(0.45 0.01 140);
+  --accent: oklch(0.96 0.01 130);
+  --accent-foreground: oklch(0.15 0.01 140);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.99 0.005 120);
+  --border: oklch(0.92 0.01 135);
+  --input: oklch(0.92 0.01 135);
+  --ring: oklch(0.55 0.15 145);
+  --chart-1: oklch(0.55 0.15 145);
+  --chart-2: oklch(0.65 0.15 90);
+  --chart-3: oklch(0.6 0.15 200);
+  --chart-4: oklch(0.6 0.15 160);
+  --chart-5: oklch(0.65 0.15 120);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.98 0.005 140);
+  --sidebar-foreground: oklch(0.15 0.01 140);
+  --sidebar-primary: oklch(0.55 0.15 145);
+  --sidebar-primary-foreground: oklch(0.99 0.005 120);
+  --sidebar-accent: oklch(0.96 0.01 140);
+  --sidebar-accent-foreground: oklch(0.15 0.01 140);
+  --sidebar-border: oklch(0.92 0.01 140);
+  --sidebar-ring: oklch(0.55 0.15 145);
+}
+
+.dark {
+  --background: oklch(0.15 0.01 140);
+  --foreground: oklch(0.95 0.005 120);
+  --card: oklch(0.18 0.01 140);
+  --card-foreground: oklch(0.95 0.005 120);
+  --popover: oklch(0.18 0.01 140);
+  --popover-foreground: oklch(0.95 0.005 120);
+  --primary: oklch(0.6 0.15 145);
+  --primary-foreground: oklch(0.15 0.01 140);
+  --secondary: oklch(0.25 0.01 140);
+  --secondary-foreground: oklch(0.95 0.005 120);
+  --muted: oklch(0.25 0.01 140);
+  --muted-foreground: oklch(0.65 0.01 140);
+  --accent: oklch(0.25 0.01 140);
+  --accent-foreground: oklch(0.95 0.005 120);
+  --destructive: oklch(0.55 0.25 27);
+  --destructive-foreground: oklch(0.95 0.005 120);
+  --border: oklch(0.25 0.01 140);
+  --input: oklch(0.25 0.01 140);
+  --ring: oklch(0.6 0.15 145);
+  --chart-1: oklch(0.6 0.15 145);
+  --chart-2: oklch(0.65 0.15 90);
+  --chart-3: oklch(0.6 0.15 200);
+  --chart-4: oklch(0.6 0.15 160);
+  --chart-5: oklch(0.65 0.15 120);
+  --sidebar: oklch(0.18 0.01 140);
+  --sidebar-foreground: oklch(0.95 0.005 120);
+  --sidebar-primary: oklch(0.6 0.15 145);
+  --sidebar-primary-foreground: oklch(0.15 0.01 140);
+  --sidebar-accent: oklch(0.25 0.01 140);
+  --sidebar-accent-foreground: oklch(0.95 0.005 120);
+  --sidebar-border: oklch(0.25 0.01 140);
+  --sidebar-ring: oklch(0.6 0.15 145);
+}
+
+@theme inline {
+  --color-background: 252 253 252;
+  --color-foreground: 20 30 25;
+  --color-card: 255 255 255;
+  --color-card-foreground: 20 30 25;
+  --color-popover: 255 255 255;
+  --color-popover-foreground: 20 30 25;
+  --color-primary: 34 139 34;
+  --color-primary-foreground: 252 253 252;
+  --color-secondary: 243 247 244;
+  --color-secondary-foreground: 20 30 25;
+  --color-muted: 243 247 244;
+  --color-muted-foreground: 100 120 110;
+  --color-accent: 243 247 244;
+  --color-accent-foreground: 20 30 25;
+  --color-destructive: 239 68 68;
+  --color-destructive-foreground: 252 253 252;
+  --color-border: 229 235 231;
+  --color-input: 229 235 231;
+  --color-ring: 34 139 34;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
