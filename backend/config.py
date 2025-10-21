@@ -38,6 +38,6 @@ DATA_LIMITS = {
 SENSOR_RANGES = {
     'temperatura': {'min': -10, 'max': 60},  # °C
     'umidade_ar': {'min': 0, 'max': 100},  # %
-    'umidade_solo': {'min': 0, 'max': 100},  # %
+    'umidade_solo': {'min': 0, 'max': 1023},  # %
     'luminosidade': {'min': 0, 'max': 1023}  # Valor ADC típico
 }
