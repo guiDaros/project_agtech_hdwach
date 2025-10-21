@@ -28,14 +28,15 @@ void loop() {
   float temperatura = DHT.temperature;
   float umidade_ar = DHT.humidity;
 
+  // JSON CORRIGIDO COM ESCAPE CORRETO
   Serial.print("{");
-  Serial.print(""temperatura":");
+  Serial.print("\"temperatura\":");
   Serial.print(temperatura, 2);
-  Serial.print(","umidade_ar":");
+  Serial.print(",\"umidade_ar\":");
   Serial.print(umidade_ar, 2);
-  Serial.print(","umidade_solo":");
+  Serial.print(",\"umidade_solo\":");
   Serial.print(valorAnalogicoSolo);
-  Serial.print(","luminosidade":");
+  Serial.print(",\"luminosidade\":");
   Serial.print(valorLuz);
   Serial.println("}");
 
