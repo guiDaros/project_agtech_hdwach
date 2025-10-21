@@ -3,16 +3,21 @@ from flask_cors import CORS
 from database import db
 from routes.sensor_routes import sensor_bp
 from routes.analysis_routes import analysis_bp
+from routes.frontend_routes import frontend_bp  # NOVO
 from config import API, DATA_LIMITS
 import time
 import threading
 
+# Inicializa Flask
 app = Flask(__name__)
 
+# Habilita CORS (permite requisições do frontend do Kaiki)
 CORS(app)
 
+# Registra blueprints (rotas modulares)
 app.register_blueprint(sensor_bp)
 app.register_blueprint(analysis_bp)
+app.register_blueprint(frontend_bp, url_prefix='/api')  # NOVO - Com prefixo /api
 
 
 @app.route('/', methods=['GET'])
@@ -35,6 +40,11 @@ def home():
             'analise': {
                 'GET /analise/estatisticas': 'Estatísticas gerais',
                 'GET /analise/dados': 'Dados brutos para análise'
+            },
+            'frontend': {
+                'GET /api/sensors/current': 'Dados atuais (formato frontend)',
+                'GET /api/sensors/historical': 'Histórico (formato frontend)',
+                'GET /api/pests/risk': 'Risco de pragas'
             }
         },
         'timestamp': int(time.time())
