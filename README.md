@@ -12,7 +12,7 @@
 
 ## 🎯 Sobre o Projeto
 
-Desenvolvido como projeto final da disciplina **Hardware Architecture (2025.2)**, este sistema integra sensores IoT, processamento de dados em tempo real e interface web para auxiliar produtores agrícolas na identificação precoce de condições favoráveis ao desenvolvimento de pragas e fungos.
+Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este sistema integra sensores IoT, processamento de dados em tempo real e interface web para auxiliar produtores agrícolas na identificação precoce de condições favoráveis ao desenvolvimento de pragas e fungos.
 
 ### 🌟 Diferenciais
 
