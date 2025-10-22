@@ -10,22 +10,6 @@
 
 ---
 
-## 📋 Sumário
-
-- [Sobre o Projeto](#-sobre-o-projeto)
-- [Demonstração](#-demonstração)
-- [Arquitetura](#-arquitetura)
-- [Tecnologias](#-tecnologias)
-- [Funcionalidades](#-funcionalidades)
-- [Instalação](#-instalação)
-- [Como Usar](#-como-usar)
-- [Estrutura do Projeto](#-estrutura-do-projeto)
-- [API Endpoints](#-api-endpoints)
-- [Equipe](#-equipe)
-- [Licença](#-licença)
-
----
-
 ## 🎯 Sobre o Projeto
 
 Desenvolvido como projeto final da disciplina **Hardware Architecture (2025.2)**, este sistema integra sensores IoT, processamento de dados em tempo real e interface web para auxiliar produtores agrícolas na identificação precoce de condições favoráveis ao desenvolvimento de pragas e fungos.
@@ -260,7 +244,7 @@ monitoramento-agricola/
 │
 ├── docs/
 │   ├── images/                   # Capturas de tela
-│   └── ARCHITECTURE.md           # Documentação técnica
+│   
 │
 ├── README.md
 └── LICENSE
@@ -355,11 +339,10 @@ Dados brutos para processamento externo
 
 | Nome | Função | LinkedIn |
 |------|--------|----------|
-| **Guilherme** | Backend & Integração | [linkedin.com/in/seu-perfil](https://linkedin.com) |
-| **Luis** | Hardware & Sensores | [linkedin.com/in/perfil-luis](https://linkedin.com) |
-| **Kaiki** | Frontend & UI/UX | [linkedin.com/in/perfil-kaiki](https://linkedin.com) |
-| **Eduardo** | Análise de Dados | [linkedin.com/in/perfil-eduardo](https://linkedin.com) |
-
+| **Guilherme** | Backend & Integração | [linkedin.com/in/guilherme-vassoller-daros](https://www.linkedin.com/in/guilherme-vassoller-daros/) |
+| **Luis** | Hardware & Sensores | [linkedin.com/in/luis-eduardo-canal-908aba363](https://www.linkedin.com/in/luis-eduardo-canal-908aba363/) |
+| **Kaiki** | Frontend & UI/UX | [linkedin.com/in/kaiki-andré-pauletto-a046a5277](https://www.linkedin.com/in/kaiki-andr%C3%A9-pauletto-a046a5277/) |
+| **Eduardo** | Análise de Dados | [linkedin.com/in/eduardo-herter](https://www.linkedin.com/in/eduardo-herter/) |
 **Professor Orientador:** Me. Fernando P. Pinheiro
 
 **Disciplina:** Hardware Architecture – 2025.2
@@ -389,14 +372,12 @@ Dados brutos para processamento externo
 
 ## 🔮 Melhorias Futuras
 
-- [ ] Implementar Machine Learning para previsão de surtos
+- [ ] Implementar Machine Learning para previsão de surtos e IA para sugestoes
 - [ ] Adicionar suporte para múltiplas culturas (milho, trigo, etc)
 - [ ] Sistema de notificações via SMS/WhatsApp
-- [ ] App mobile nativo (iOS/Android)
 - [ ] Integração com estações meteorológicas
 - [ ] Modo offline com sincronização posterior
-- [ ] Suporte para múltiplos sensores simultâneos
-- [ ] Dashboard de gestão de fazendas
+- [ ] Dashboard melhor
 
 ---
 
@@ -406,27 +387,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ---
 
-## 🙏 Agradecimentos
-
-- Professor Fernando P. Pinheiro pela orientação
-- Comunidade Arduino e Raspberry Pi pela documentação
-- Colegas de turma pelo feedback durante o desenvolvimento
-- Família e amigos pelo apoio
-
----
-
-## 📞 Contato
-
-**Guilherme** - [seu-email@example.com](mailto:seu-email@example.com)
-
-**Link do Projeto:** [https://github.com/seu-usuario/monitoramento-agricola](https://github.com/seu-usuario/monitoramento-agricola)
-
----
-
 <p align="center">
-  Feito com ❤️ e ☕ pela equipe OMA
-</p>
-
-<p align="center">
-  <sub>Se este projeto te ajudou, considere deixar uma ⭐</sub>
+  <sub>Se gostou, considere deixar uma ⭐</sub>
 </p>
