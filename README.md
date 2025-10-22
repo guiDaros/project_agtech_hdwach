@@ -6,7 +6,7 @@
 [![Flask](https://img.shields.io/badge/flask-3.0.0-green.svg)](https://flask.palletsprojects.com/)
 [![Next.js](https://img.shields.io/badge/next.js-14+-black.svg)](https://nextjs.org/)
 
-> Sistema completo de monitoramento em tempo real para detecção de riscos de pragas e fungos em plantações, utilizando IoT, análise de dados ambientais e machine learning.
+> Sistema completo de monitoramento em tempo real para detecção de riscos de pragas e fungos em plantações, utilizando IoT, análise de dados.
 
 ---
 
