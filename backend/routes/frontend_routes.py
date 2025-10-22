@@ -122,155 +122,241 @@ def dados_historicos():
         }), 500
 
 
+# ============================================================
+# LÓGICA DO EDU - CÁLCULO DE RISCO DE PRAGAS
+# ============================================================
+
+# Regras de risco para Soja (baseado no código do Edu)
+PRAGAS_SOJA = {
+    "Lagarta-da-soja": {
+        "temp": (22, 34),
+        "umidade": (60, 90),
+        "solo": (300, 700),
+        "luz": (0, 600)
+    },
+    "Percevejo-marrom": {
+        "temp": (20, 32),
+        "umidade": (30, 70),
+        "solo": (600, 900),
+        "luz": (0, 500)
+    },
+    "Mosca-branca": {
+        "temp": (24, 34),
+        "umidade": (30, 60),
+        "solo": (600, 950),
+        "luz": (0, 400)
+    }
+}
+
+# Regras de risco para Milho (placeholder - pode ajustar depois)
+PRAGAS_MILHO = {
+    "Lagarta-do-cartucho": {
+        "temp": (25, 35),
+        "umidade": (60, 85),
+        "solo": (400, 800),
+        "luz": (0, 500)
+    },
+    "Cigarrinha": {
+        "temp": (22, 32),
+        "umidade": (50, 80),
+        "solo": (500, 900),
+        "luz": (0, 600)
+    },
+    "Percevejo": {
+        "temp": (20, 30),
+        "umidade": (40, 70),
+        "solo": (600, 950),
+        "luz": (0, 450)
+    }
+}
+
+
+def calcular_risco_edu(dados, regras):
+    """
+    Calcula risco de pragas usando a lógica EXATA do Edu
+    
+    Parâmetros:
+    - dados: dict com temperatura, umidade_ar, umidade_solo, luminosidade
+    - regras: dict com condições de cada praga
+    
+    Retorna:
+    - dict com nome da praga e porcentagem de risco
+    """
+    riscos = {}
+    
+    for nome, cond in regras.items():
+        pontos = 0
+        
+        # Verifica cada condição (igual o Edu fez)
+        if cond["temp"][0] <= dados["temperatura"] <= cond["temp"][1]:
+            pontos += 1
+        
+        if cond["umidade"][0] <= dados["umidade_ar"] <= cond["umidade"][1]:
+            pontos += 1
+        
+        if cond["solo"][0] <= dados["umidade_solo"] <= cond["solo"][1]:
+            pontos += 1
+        
+        if cond["luz"][0] <= dados["luminosidade"] <= cond["luz"][1]:
+            pontos += 1
+        
+        # Calcula porcentagem (4 condições = 100%)
+        riscos[nome] = (pontos / 4) * 100
+    
+    return riscos
+
+
+def determinar_status(risco):
+    """
+    Determina status baseado na porcentagem de risco
+    """
+    if risco < 40:
+        return "baixo"
+    elif risco < 70:
+        return "médio"
+    else:
+        return "alto"
+
+
 @frontend_bp.route('/pests/risk', methods=['GET'])
 def risco_pragas():
     """
-    Endpoint de risco de pragas
-    Calcula probabilidade baseado em condições ambientais
+    Endpoint de risco de pragas usando lógica do Edu
     
     Query params:
-    - plant: soja ou milho (usado para definir pragas específicas)
+    - plant: soja ou milho (padrão: soja)
     
     Response formato Kaiki:
     [
         {
-            "praga": "Lagarta do Cartucho",
-            "risco": 65,
-            "status": "médio"
+            "praga": "Lagarta-da-soja",
+            "risco": 75,
+            "status": "alto"
         }
     ]
-    
-    Nota: Lógica básica - Edu vai refinar com modelo mais complexo
     """
     try:
-        plant = request.args.get('plant', default='soja')
+        plant = request.args.get('plant', default='soja').lower()
         
-        # Busca últimas 10 leituras para calcular média
-        readings = db.get_recent_readings(limit=10)
+        # Seleciona regras baseado na planta
+        if plant == 'milho':
+            regras = PRAGAS_MILHO
+        else:
+            regras = PRAGAS_SOJA
+        
+        # Busca última leitura
+        readings = db.get_recent_readings(limit=1)
         
         if not readings:
-            return jsonify([]), 200
+            return jsonify({
+                'success': False,
+                'error': 'Nenhuma leitura disponível'
+            }), 404
         
-        # Calcula médias das condições
-        avg_temp = sum(r['temperatura'] for r in readings) / len(readings)
-        avg_umid_ar = sum(r['umidade_ar'] for r in readings) / len(readings)
-        avg_umid_solo = sum(r['umidade_solo'] for r in readings) / len(readings)
+        leitura = readings[0]
         
-        pragas = []
+        # Prepara dados no formato que o Edu usa
+        dados = {
+            "temperatura": leitura['temperatura'],
+            "umidade_ar": leitura['umidade_ar'],
+            "umidade_solo": leitura['umidade_solo'],
+            "luminosidade": leitura['luminosidade']
+        }
         
-        # === LÓGICA DE RISCO (PLACEHOLDER - EDU VAI MELHORAR) ===
+        # Calcula risco usando função do Edu
+        riscos = calcular_risco_edu(dados, regras)
         
-        # 1. Lagartas (temperatura alta + umidade moderada)
-        if avg_temp > 25:
-            risco_lagarta = 0
-            
-            # Temperatura favorável (25-35°C)
-            if 25 <= avg_temp <= 35:
-                risco_lagarta += min((avg_temp - 20) * 8, 50)
-            
-            # Umidade favorável (60-85%)
-            if 60 <= avg_umid_ar <= 85:
-                risco_lagarta += min((avg_umid_ar - 50) * 0.8, 30)
-            
-            # Solo úmido favorece
-            if avg_umid_solo > 40:
-                risco_lagarta += 20
-            
-            risco_lagarta = min(int(risco_lagarta), 100)
-            
-            if risco_lagarta > 20:
-                status = "baixo" if risco_lagarta < 40 else ("médio" if risco_lagarta < 70 else "alto")
-                nome_praga = "Lagarta do Cartucho" if plant == "milho" else "Lagarta da Soja"
-                pragas.append({
-                    'praga': nome_praga,
-                    'risco': risco_lagarta,
-                    'status': status
-                })
-        
-        # 2. Fungos (alta umidade do ar)
-        if avg_umid_ar > 70:
-            risco_fungo = 0
-            
-            # Umidade muito alta
-            if avg_umid_ar > 80:
-                risco_fungo += min((avg_umid_ar - 60) * 2, 60)
-            else:
-                risco_fungo += min((avg_umid_ar - 60) * 1.5, 40)
-            
-            # Temperatura favorável para fungos (20-30°C)
-            if 20 <= avg_temp <= 30:
-                risco_fungo += 30
-            
-            risco_fungo = min(int(risco_fungo), 100)
-            
-            if risco_fungo > 20:
-                status = "baixo" if risco_fungo < 40 else ("médio" if risco_fungo < 70 else "alto")
-                nome_fungo = "Ferrugem Asiática" if plant == "soja" else "Mancha Branca"
-                pragas.append({
-                    'praga': nome_fungo,
-                    'risco': risco_fungo,
-                    'status': status
-                })
-        
-        # 3. Percevejos (condições secas + temperatura alta)
-        if avg_umid_solo < 45 or avg_temp > 30:
-            risco_percevejo = 0
-            
-            # Solo seco
-            if avg_umid_solo < 40:
-                risco_percevejo += min((50 - avg_umid_solo) * 2, 50)
-            
-            # Temperatura alta
-            if avg_temp > 30:
-                risco_percevejo += min((avg_temp - 28) * 10, 40)
-            
-            risco_percevejo = min(int(risco_percevejo), 100)
-            
-            if risco_percevejo > 20:
-                status = "baixo" if risco_percevejo < 40 else ("médio" if risco_percevejo < 70 else "alto")
-                pragas.append({
-                    'praga': 'Percevejo',
-                    'risco': risco_percevejo,
-                    'status': status
-                })
-        
-        # 4. Ácaros (calor + seco)
-        if avg_temp > 28 and avg_umid_ar < 60:
-            risco_acaro = 0
-            
-            # Temperatura alta
-            risco_acaro += min((avg_temp - 25) * 8, 50)
-            
-            # Ar seco
-            if avg_umid_ar < 50:
-                risco_acaro += min((60 - avg_umid_ar) * 1.5, 40)
-            
-            risco_acaro = min(int(risco_acaro), 100)
-            
-            if risco_acaro > 20:
-                status = "baixo" if risco_acaro < 40 else ("médio" if risco_acaro < 70 else "alto")
-                pragas.append({
-                    'praga': 'Ácaro Rajado',
-                    'risco': risco_acaro,
-                    'status': status
-                })
-        
-        # Se não detectou nenhum risco significativo
-        if not pragas:
-            pragas.append({
-                'praga': 'Condições Favoráveis',
-                'risco': 15,
-                'status': 'baixo'
+        # Formata resposta pro frontend
+        resultado = []
+        for praga, valor_risco in riscos.items():
+            resultado.append({
+                'praga': praga,
+                'risco': round(valor_risco, 0),  # Arredonda pra inteiro
+                'status': determinar_status(valor_risco)
             })
         
         # Ordena por risco (maior primeiro)
-        pragas.sort(key=lambda x: x['risco'], reverse=True)
+        resultado.sort(key=lambda x: x['risco'], reverse=True)
         
-        return jsonify(pragas), 200
+        return jsonify(resultado), 200
     
     except Exception as e:
         return jsonify({
             'success': False,
             'error': 'Erro ao calcular risco',
+            'details': str(e)
+        }), 500
+
+
+@frontend_bp.route('/pests/risk-historical', methods=['GET'])
+def risco_historico():
+    """
+    Calcula risco de pragas ao longo do tempo (para gráficos de tendência)
+    
+    Query params:
+    - plant: soja ou milho (padrão: soja)
+    - hours: horas de histórico (padrão: 24)
+    
+    Response:
+    [
+        {
+            "timestamp": "2025-10-20T14:30:00Z",
+            "pragas": [
+                {"praga": "Lagarta-da-soja", "risco": 75},
+                ...
+            ]
+        }
+    ]
+    """
+    try:
+        plant = request.args.get('plant', default='soja').lower()
+        hours = request.args.get('hours', default=24, type=int)
+        hours = min(hours, 168)
+        
+        # Seleciona regras
+        regras = PRAGAS_MILHO if plant == 'milho' else PRAGAS_SOJA
+        
+        # Busca histórico
+        start_timestamp = int(time.time()) - (hours * 3600)
+        end_timestamp = int(time.time())
+        
+        readings = db.get_readings_by_timerange(
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+            limit=min(hours * 6, 500)
+        )
+        
+        if not readings:
+            return jsonify([]), 200
+        
+        # Calcula risco pra cada leitura
+        historico = []
+        for r in readings:
+            dados = {
+                "temperatura": r['temperatura'],
+                "umidade_ar": r['umidade_ar'],
+                "umidade_solo": r['umidade_solo'],
+                "luminosidade": r['luminosidade']
+            }
+            
+            riscos = calcular_risco_edu(dados, regras)
+            
+            historico.append({
+                'timestamp': datetime.fromtimestamp(r['timestamp']).isoformat() + 'Z',
+                'pragas': [
+                    {'praga': nome, 'risco': round(valor, 0)}
+                    for nome, valor in riscos.items()
+                ]
+            })
+        
+        # Ordena por timestamp (mais antigo primeiro)
+        historico.reverse()
+        
+        return jsonify(historico), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': 'Erro ao calcular histórico de risco',
             'details': str(e)
         }), 500
