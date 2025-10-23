@@ -65,3 +65,5 @@ while True:
 
     print(f"Dados coletados: {dados}")
     time.sleep(10)
+
+# Teste_Kaiki
