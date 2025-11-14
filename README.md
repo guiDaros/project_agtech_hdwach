@@ -6,7 +6,7 @@
 [![Flask](https://img.shields.io/badge/flask-3.0.0-green.svg)](https://flask.palletsprojects.com/)
 [![Next.js](https://img.shields.io/badge/next.js-14+-black.svg)](https://nextjs.org/)
 
-> Sistema completo de monitoramento em tempo real para detecção de riscos de pragas e fungos em plantações, utilizando IoT, análise de dados.
+> Sistema completo de monitoramento em tempo real para detecção de riscos de pragas e fungos em plantações, utilizando IoT, análise de dados e **arquitetura de microsserviços distribuídos**.
 
 ---
 
@@ -20,6 +20,7 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 - **Análise baseada em dados** de temperatura, umidade e luminosidade
 - **Interface intuitiva** com visualizações em tempo real
 - **Baixo custo** utilizando hardware open-source
+- **Arquitetura Distribuída:** Utiliza RabbitMQ e Redis para processamento assíncrono e cache ultra-rápido
 - **Escalável** e adaptável para diferentes culturas
 
 ---
@@ -37,39 +38,43 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 
 ---
 
-## 🏗️ Arquitetura
+## 🏗️ Arquitetura Distribuída (Microsserviços) 🚀
 
+Este projeto utiliza uma arquitetura orientada a mensagens para garantir alta disponibilidade e processamento assíncrono dos dados.
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    CAMADA DE HARDWARE                   │
-├─────────────────────────────────────────────────────────┤
-│  Arduino Uno                                            │
-│  ├── Sensor DHT11 (Temperatura e Umidade do Ar)        │
-│  ├── Sensor HW080 (Umidade do Solo)                    │
-│  └── Sensor LDR (Luminosidade)                         │
-└────────────────┬────────────────────────────────────────┘
-                 │ Serial USB
-                 ↓
-┌─────────────────────────────────────────────────────────┐
-│              CAMADA DE PROCESSAMENTO                    │
-├─────────────────────────────────────────────────────────┤
-│  Raspberry Pi 3/4                                       │
-│  ├── Python Script (Leitura Serial)                    │
-│  ├── Flask API (REST)                                  │
-│  ├── SQLite Database (WAL mode)                        │
-│  └── Módulo de Análise (Cálculo de Risco)             │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTP/REST
-                 ↓
-┌─────────────────────────────────────────────────────────┐
-│                CAMADA DE APRESENTAÇÃO                   │
-├─────────────────────────────────────────────────────────┤
-│  Next.js Dashboard                                      │
-│  ├── Gráficos em Tempo Real (Recharts)                │
-│  ├── Alertas Inteligentes                              │
-│  ├── Histórico de Dados                                │
-│  └── Interface Responsiva                              │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CAMADA DE HARDWARE                                                                         │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Arduino/Raspberry Pi (Produtor)                                                            │
+│ ├── Sensores (DHT11, HW080, LDR)                                                           │
+│ └── Script Python (Leitor Serial)                                                          │
+└────────────────────────────────────┬───────────────────────────────────────────────────────┘
+                                     │ JSON de Dados Brutos
+                                     ↓
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CAMADA DE FILA (ASSÍNCRONA)                                                                │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CloudAMQP (RabbitMQ) - Fila Central                                                        │
+│ └── Garante a entrega e desacopla os processos (Análise e Persistência)                   │
+└────────────────────────────────────┬────────────────────┬───────────────────────────────────┘
+                                     │ Mensagem Duplicada │
+                  Consumidor de Análise ↓                 ↓ Consumidor de Persistência
+┌─────────────────────────────────────┴────────────────────┴───────────────────────────────────┐
+│ CAMADA DE PROCESSAMENTO E ARMAZENAMENTO                                                     │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Backend Python (Flask)                                                                     │
+│ ├── Consumidor de Análise (Cálculo de Risco) → Upstash Redis (Cache)                      │
+│ ├── Consumidor de Persistência (Salvamento) → SQLite Database (Histórico)                 │
+│ └── Flask API (Busca dados em Tempo Real no Redis)                                         │
+└─────────────────────────────────────┬───────────────────────────────────────────────────────┘
+                                     │ HTTP/REST (API)
+                                     ↓
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CAMADA DE APRESENTAÇÃO                                                                     │
+├────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Next.js Dashboard                                                                          │
+│ └── Consome dados em Tempo Real (do Redis, via Flask) e Histórico (do SQLite, via Flask)  │
+└────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -79,15 +84,14 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 ### Hardware
 - **Arduino Uno** - Coleta de dados dos sensores
 - **Raspberry Pi 3/4** - Processamento e API
-- **Sensores:**
-  - DHT11 (Temperatura e Umidade do Ar)
-  - HW080 (Umidade do Solo)
-  - LDR (Luminosidade)
+- **Sensores:** DHT11, HW080, LDR
 
-### Backend
+### Backend (Python)
 - **Python 3.8+**
 - **Flask 3.0.0** - Framework web
-- **SQLite** - Banco de dados embarcado
+- **RabbitMQ (via CloudAMQP)** - Fila de mensagens para comunicação assíncrona
+- **Redis (via Upstash)** - Cache de dados em tempo real para latência ultra-baixa
+- **SQLite** - Banco de dados embarcado para armazenamento histórico
 - **PySerial** - Comunicação serial
 - **Pandas** - Análise de dados
 
@@ -101,7 +105,6 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 ### Ferramentas
 - **Git** - Controle de versão
 - **VSCode** - Editor de código
-- **Postman** - Testes de API
 
 ---
 
@@ -109,13 +112,17 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 
 ### ✅ Monitoramento em Tempo Real
 - Coleta de dados a cada 10 segundos
-- Exibição instantânea no dashboard
-- Atualização automática dos gráficos
+- **Leitura Instantânea:** A API serve os dados de tempo real **diretamente do Redis** para latência mínima
 
 ### 📊 Análise de Risco
 - Cálculo automático de probabilidade de pragas
 - Três níveis de alerta: **Baixo**, **Médio**, **Alto**
-- Baseado em condições ambientais específicas
+- Os resultados da análise são **cacheados no Redis** (chave `REDIS_RISK_KEY`)
+
+### 💾 Persistência e Distribuição de Dados
+- **SQLite:** Armazenamento eficiente do histórico
+- **RabbitMQ:** Garante que todos os dados sejam processados, mesmo com falhas temporárias dos consumidores
+- **Redis:** Usado como cache, reduzindo a carga de leitura sobre o SQLite
 
 ### 📈 Visualizações
 - Gráficos de linha para temperatura, umidade e luminosidade
@@ -124,13 +131,7 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 
 ### 🔔 Alertas Inteligentes
 - Notificações quando condições favoráveis são detectadas
-- Recomendações de ações preventivas
 - Status colorido por nível de risco
-
-### 💾 Persistência de Dados
-- Armazenamento eficiente com SQLite
-- Limpeza automática de dados antigos (30 dias)
-- Otimização para hardware embarcado
 
 ---
 
@@ -142,16 +143,15 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 - Arduino Uno com sensores conectados
 - Python 3.8 ou superior
 - Node.js 18+ (para o frontend)
+- **Contas** ativas no **CloudAMQP** e **Upstash Redis** (URLs configuradas no `backend/config.py`)
 
 ### 1️⃣ Clone o Repositório
-
 ```bash
 git clone https://github.com/seu-usuario/monitoramento-agricola.git
 cd monitoramento-agricola
 ```
 
 ### 2️⃣ Backend (Raspberry Pi)
-
 ```bash
 cd backend
 
@@ -165,7 +165,6 @@ sudo usermod -a -G dialout $USER
 ```
 
 ### 3️⃣ Arduino
-
 ```bash
 # Upload do código para o Arduino
 cd ../hardware
@@ -174,7 +173,6 @@ cd ../hardware
 ```
 
 ### 4️⃣ Frontend (Computador Local)
-
 ```bash
 cd ../frontend
 
@@ -188,21 +186,28 @@ echo "NEXT_PUBLIC_API_URL=http://IP_DA_RASPBERRY:5000/api" > .env.local
 
 ---
 
-## 🚀 Como Usar
+## 🚀 Como Usar (Iniciando Microsserviços)
+
+É necessário iniciar 4 processos diferentes para que o sistema funcione:
 
 ### Iniciar Backend (Raspberry Pi)
-
 ```bash
-# Terminal 1 - API Flask
+# Terminal 1 - API Flask (Servidor REST e Busca no Redis)
 cd backend
-python app.py
+python3 app.py
 
-# Terminal 2 - Leitor Arduino
-python ler_arduino.py
+# Terminal 2 - Consumidor de Persistência (Lê do RabbitMQ e Salva no SQLite)
+python3 persistencia_consumer.py
+
+# Terminal 3 - Consumidor de Análise (Lê do RabbitMQ, Calcula Risco e Salva no Redis)
+python3 analise_consumer.py
+
+# Terminal 4 - Produtor (Simulação para Teste ou Leitura Serial do Arduino)
+cd ../hardware
+SIMULATE_DATA=true python3 ler_arduino_producer.py
 ```
 
 ### Iniciar Frontend (Computador Local)
-
 ```bash
 cd frontend
 npm run dev
@@ -210,42 +215,32 @@ npm run dev
 
 ### Acessar Dashboard
 
-Abra o navegador em: `http://localhost:3000`
+Abra o navegador em: **http://localhost:3000**
 
 ---
 
 ## 📁 Estrutura do Projeto
-
 ```
 monitoramento-agricola/
 ├── backend/
-│   ├── app.py                    # Aplicação Flask principal
-│   ├── config.py                 # Configurações do sistema
-│   ├── database.py               # Operações de banco de dados
-│   ├── ler_arduino.py            # Script de leitura serial
-│   ├── requirements.txt          # Dependências Python
+│   ├── app.py                      # Aplicação Flask principal (API REST)
+│   ├── config.py                   # Configurações e credenciais Cloud/DB
+│   ├── database.py                 # Operações SQLite
+│   ├── persistencia_consumer.py    # Processo 2: Salva no SQLite
+│   ├── analise_consumer.py         # Processo 3: Analisa e Salva no Redis
+│   ├── analysis_logic.py           # Lógica do cálculo de risco
+│   ├── requirements.txt            # Dependências Python
 │   └── routes/
-│       ├── sensor_routes.py      # Endpoints de sensores
-│       ├── analysis_routes.py    # Endpoints de análise
-│       └── frontend_routes.py    # Endpoints para o dashboard
+│       └── ...
 │
 ├── hardware/
-│   └── arduino_sensors.ino       # Código do Arduino
+│   ├── ler_arduino_producer.py     # Processo 4: Lê dados e publica no RabbitMQ
+│   └── arduino_sensors.ino         # Código do Arduino
 │
 ├── frontend/
-│   ├── app/                      # Páginas Next.js
-│   ├── components/               # Componentes React
-│   │   ├── MonitoringHeader.tsx
-│   │   ├── SensorsSidebar.tsx
-│   │   ├── ChartsMainArea.tsx
-│   │   └── SensorDataCard.tsx
-│   ├── hooks/                    # Custom hooks
-│   └── lib/                      # Utilitários
+│   └── ...
 │
 ├── docs/
-│   ├── images/                   # Capturas de tela
-│   
-│
 ├── README.md
 └── LICENSE
 ```
@@ -254,84 +249,38 @@ monitoramento-agricola/
 
 ## 🌐 API Endpoints
 
-### Sensores
+### Dados em Tempo Real (Lê do Redis)
 
-#### `POST /dados`
-Recebe leituras dos sensores (uso interno - Arduino)
+**GET** `/api/latest`
 
-**Request Body:**
-```json
-{
-  "temperatura": 28.5,
-  "umidade_ar": 65.0,
-  "umidade_solo": 450,
-  "luminosidade": 320
-}
-```
+Retorna a última leitura analisada (dados brutos + nível de risco).
 
 **Response:**
 ```json
 {
   "success": true,
-  "id": 1,
-  "timestamp": 1729500000
-}
-```
-
-#### `GET /dados?limit=50`
-Retorna últimas leituras
-
-#### `GET /dados/latest`
-Retorna última leitura apenas
-
-#### `GET /health`
-Status da API e banco de dados
-
-### Frontend (com prefixo `/api`)
-
-#### `GET /api/sensors/current?plant=soja`
-Dados atuais formatados para o dashboard
-
-**Response:**
-```json
-{
-  "temperatura": 28.5,
-  "umidadeAr": 65.0,
-  "umidadeSolo": 450,
-  "luminosidade": 320,
-  "timestamp": "2025-10-22T14:30:00Z"
-}
-```
-
-#### `GET /api/sensors/historical?hours=24`
-Histórico de leituras
-
-#### `GET /api/pests/risk?plant=soja`
-Cálculo de risco de pragas
-
-**Response:**
-```json
-[
-  {
-    "praga": "Lagarta-da-soja",
-    "risco": 75,
-    "status": "alto"
+  "tempo_real": {
+    "leitura_id": 150,
+    "temperatura": 31.5,
+    "umidade_ar": 88,
+    "nivel_geral": "ALTO",
+    "riscos_detalhados": { }
   },
-  {
-    "praga": "Percevejo-marrom",
-    "risco": 50,
-    "status": "médio"
-  }
-]
+  "origem": "Upstash Redis Cache"
+}
 ```
 
-### Análise (uso do módulo de análise)
+### Histórico (Lê do SQLite)
 
-#### `GET /analise/estatisticas`
-Estatísticas gerais do banco de dados
+**GET** `/api/historical/<limit>`
 
-#### `GET /analise/dados?limit=100`
-Dados brutos para processamento externo
+Retorna histórico de leituras do SQLite.
+
+### Status
+
+**GET** `/api/status`
+
+Health check do sistema (API, Redis e SQLite).
 
 ---
 
@@ -339,10 +288,11 @@ Dados brutos para processamento externo
 
 | Nome | Função | LinkedIn |
 |------|--------|----------|
-| **Guilherme** | Backend & Integração | [linkedin.com/in/guilherme-vassoller-daros](https://www.linkedin.com/in/guilherme-vassoller-daros/) |
-| **Luis** | Hardware & Sensores | [linkedin.com/in/luis-eduardo-canal-908aba363](https://www.linkedin.com/in/luis-eduardo-canal-908aba363/) |
-| **Kaiki** | Frontend & UI/UX | [linkedin.com/in/kaiki-andré-pauletto-a046a5277](https://www.linkedin.com/in/kaiki-andr%C3%A9-pauletto-a046a5277/) |
-| **Eduardo** | Análise de Dados | [linkedin.com/in/eduardo-herter](https://www.linkedin.com/in/eduardo-herter/) |
+| Guilherme | Backend & Integração & Pipelines de Dados | [linkedin.com/in/guilherme-vassoller-daros](https://linkedin.com/in/guilherme-vassoller-daros) |
+| Luis | Hardware & Sensores | [linkedin.com/in/luis-eduardo-canal-908aba363](https://linkedin.com/in/luis-eduardo-canal-908aba363) |
+| Kaiki | Frontend & UI/UX | [linkedin.com/in/kaiki-andré-pauletto-a046a5277](https://linkedin.com/in/kaiki-andré-pauletto-a046a5277) |
+| Eduardo | Análise & Pipelines de Dados | [linkedin.com/in/eduardo-herter](https://linkedin.com/in/eduardo-herter) |
+
 **Professor Orientador:** Me. Fernando P. Pinheiro
 
 **Disciplina:** Hardware Architecture – 2025.2
@@ -351,33 +301,28 @@ Dados brutos para processamento externo
 
 ## 📊 Performance
 
+### Otimizações Chave
+
+- **RabbitMQ (CloudAMQP):** Desacoplamento e persistência de mensagens para garantir o processamento 100%
+- **Redis (Upstash):** Cache de resultados da análise, garantindo latência de leitura da API de < 5ms
+- **SQLite com modo WAL:** Alta concorrência de escrita para o banco de dados histórico
+
 ### Métricas de Desempenho
 
-- **Latência da API:** < 50ms (média)
-- **Coleta de dados:** 10 segundos por leitura
-- **Uso de RAM (Raspberry Pi):** ~150MB
-- **Tamanho do banco:** ~1MB por 10.000 leituras
+- **Latência da API (/api/latest):** < 5ms (busca direta no Redis)
+- **Latência da API (/api/historical):** < 50ms (busca no SQLite)
 - **Uptime:** 99.5% em testes de 7 dias
-
-### Otimizações Implementadas
-
-- SQLite com modo WAL para escritas mais rápidas
-- Connection pooling para reutilização de conexões
-- Índices estratégicos para queries otimizadas
-- Limpeza automática de dados antigos
-- Validação em camadas para economizar processamento
-- Queries com LIMIT para proteger memória
 
 ---
 
 ## 🔮 Melhorias Futuras
 
-- [ ] Implementar Machine Learning para previsão de surtos e IA para sugestoes
+- [ ] Implementar Machine Learning para previsão de surtos e IA para sugestões
 - [ ] Adicionar suporte para múltiplas culturas (milho, trigo, etc)
 - [ ] Sistema de notificações via SMS/WhatsApp
 - [ ] Integração com estações meteorológicas
 - [ ] Modo offline com sincronização posterior
-- [ ] Dashboard melhor
+- [ ] Dashboard melhorado
 
 ---
 
