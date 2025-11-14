@@ -64,13 +64,13 @@ class Database:
         Valida ranges dos sensores
         Retorna: (bool, str) -> (válido?, mensagem de erro)
         """
-        for sensor, value in data.items():
-            if sensor not in SENSOR_RANGES:
-                continue
-            
-            range_config = SENSOR_RANGES[sensor]
-            if not (range_config['min'] <= value <= range_config['max']):
-                return False, f"{sensor} fora do range: {value}"
+        # Itera sobre as regras de range, e não sobre os dados de entrada
+        for sensor_name, config in SENSOR_RANGES.items():
+            # Verifica se o sensor a ser validado está presente nos dados
+            if sensor_name in data:
+                value = data[sensor_name]
+                if not (config['min'] <= value <= config['max']):
+                    return False, f"{sensor_name} fora do range: {value}"
         
         return True, ""
     
@@ -101,27 +101,34 @@ class Database:
             ''', (temperatura, umidade_ar, umidade_solo, luminosidade, int(time.time())))
             
             return cursor.lastrowid
-    
+
+    def _get_safe_query_limit(self, limit=None):
+        """Helper privado para calcular e travar o limite de queries SQL."""
+        max_limit = DATA_LIMITS['max_records_query']
+        
+        # Se limite não for fornecido, usa o teto padrão
+        if limit is None:
+            return max_limit
+        
+        # Garante que o limite seja positivo (min 0) e não exceda o teto
+        return min(max(0, limit), max_limit)
+
     def get_recent_readings(self, limit=None):
         """
         Retorna leituras mais recentes
         limit: quantidade de registros (padrão do config.py)
         """
-        if limit is None:
-            limit = DATA_LIMITS['max_records_query']
-        
-        # Garante que não exceda o máximo configurado
-        limit = min(limit, DATA_LIMITS['max_records_query'])
+        safe_limit = self._get_safe_query_limit(limit)
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
+            cursor.execute(f'''
                 SELECT id, temperatura, umidade_ar, umidade_solo, 
                        luminosidade, timestamp
                 FROM leituras
                 ORDER BY timestamp DESC
                 LIMIT ?
-            ''', (limit,))
+            ''', (safe_limit,))
             
             rows = cursor.fetchall()
             
@@ -133,10 +140,7 @@ class Database:
         Retorna leituras em um intervalo de tempo específico
         Útil para análises do Edu
         """
-        if limit is None:
-            limit = DATA_LIMITS['max_records_query']
-        
-        limit = min(limit, DATA_LIMITS['max_records_query'])
+        safe_limit = self._get_safe_query_limit(limit)
         
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -147,7 +151,7 @@ class Database:
                 WHERE timestamp BETWEEN ? AND ?
                 ORDER BY timestamp DESC
                 LIMIT ?
-            ''', (start_timestamp, end_timestamp, limit))
+            ''', (start_timestamp, end_timestamp, safe_limit))
             
             rows = cursor.fetchall()
             return [dict(row) for row in rows]

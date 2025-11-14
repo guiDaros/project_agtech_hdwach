@@ -5,6 +5,10 @@ import time
 # Blueprint para rotas de sensores
 sensor_bp = Blueprint('sensor', __name__)
 
+# Constantes de configuração do Blueprint
+_REQUIRED_FIELDS = ['temperatura', 'umidade_ar', 'umidade_solo', 'luminosidade']
+_DEFAULT_LIST_LIMIT = 50
+
 
 @sensor_bp.route('/dados', methods=['POST'])
 def receber_dados():
@@ -30,8 +34,7 @@ def receber_dados():
         data = request.get_json()
         
         # Valida campos obrigatórios
-        required_fields = ['temperatura', 'umidade_ar', 'umidade_solo', 'luminosidade']
-        missing_fields = [field for field in required_fields if field not in data]
+        missing_fields = [field for field in _REQUIRED_FIELDS if field not in data]
         
         if missing_fields:
             return jsonify({
@@ -39,7 +42,7 @@ def receber_dados():
                 'error': f'Campos faltando: {", ".join(missing_fields)}'
             }), 400
         
-        # Converte para float (proteção contra strings)
+        # Converte para float (proteção contra strings ou nulos)
         try:
             temperatura = float(data['temperatura'])
             umidade_ar = float(data['umidade_ar'])
@@ -51,7 +54,7 @@ def receber_dados():
                 'error': 'Todos os valores devem ser numéricos'
             }), 400
         
-        # Insere no banco (validação acontece aqui)
+        # Insere no banco (validação de range acontece no 'db')
         reading_id = db.insert_reading(
             temperatura=temperatura,
             umidade_ar=umidade_ar,
@@ -67,7 +70,7 @@ def receber_dados():
         }), 201
     
     except ValueError as e:
-        # Erro de validação dos sensores
+        # Erro de validação dos sensores (do db.insert_reading)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -88,17 +91,13 @@ def listar_dados():
     Retorna leituras recentes (para o dashboard do Kaiki)
     
     Query params opcionais:
-    - limit: quantidade de registros (padrão: 50, máx: 100)
+    - limit: quantidade de registros (padrão: 50)
     - start: timestamp inicial (filtro por período)
     - end: timestamp final (filtro por período)
-    
-    Exemplos:
-    GET /dados?limit=20
-    GET /dados?start=1697500000&end=1697510000
     """
     try:
         # Parâmetros opcionais
-        limit = request.args.get('limit', default=50, type=int)
+        limit = request.args.get('limit', default=_DEFAULT_LIST_LIMIT, type=int)
         start_timestamp = request.args.get('start', type=int)
         end_timestamp = request.args.get('end', type=int)
         

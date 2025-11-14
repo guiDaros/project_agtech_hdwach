@@ -5,23 +5,17 @@ import time
 # Blueprint para rotas de análise
 analysis_bp = Blueprint('analysis', __name__)
 
+# Constantes de configuração para este blueprint
+_SECONDS_PER_DAY = 86400
+_DEFAULT_LIMIT = 100
+_MAX_ANALYSIS_LIMIT = 1000
+_MAX_ANALYSIS_DAYS = 30
+
 
 @analysis_bp.route('/analise/estatisticas', methods=['GET'])
 def estatisticas_gerais():
     """
     Retorna estatísticas agregadas básicas do banco
-    
-    Response:
-    {
-        "total_registros": 1500,
-        "temp_media": 28.5,
-        "umid_ar_media": 72.3,
-        "umid_solo_media": 45.1,
-        "lum_media": 650.2,
-        "primeira_leitura": 1697400000,
-        "ultima_leitura": 1697500000,
-        "periodo_coleta_dias": 7.5
-    }
     """
     try:
         stats = db.get_statistics()
@@ -34,7 +28,7 @@ def estatisticas_gerais():
         
         # Calcula período de coleta
         if stats['primeira_leitura'] and stats['ultima_leitura']:
-            periodo_dias = (stats['ultima_leitura'] - stats['primeira_leitura']) / 86400
+            periodo_dias = (stats['ultima_leitura'] - stats['primeira_leitura']) / _SECONDS_PER_DAY
             stats['periodo_coleta_dias'] = round(periodo_dias, 2)
         
         return jsonify({
@@ -59,21 +53,15 @@ def dados_para_analise():
     - start: timestamp inicial (Unix)
     - end: timestamp final (Unix)
     - limit: máximo de registros (padrão: 100, máx: 1000)
-    
-    Exemplos:
-    GET /analise/dados?limit=500
-    GET /analise/dados?start=1697400000&end=1697500000
-    
-    O Edu processa esses dados e aplica a lógica de risco dele
     """
     try:
         # Parâmetros opcionais
         start_timestamp = request.args.get('start', type=int)
         end_timestamp = request.args.get('end', type=int)
-        limit = request.args.get('limit', default=100, type=int)
+        limit = request.args.get('limit', default=_DEFAULT_LIMIT, type=int)
         
         # Limita máximo de registros (proteção da Raspberry)
-        limit = min(limit, 1000)
+        limit = min(limit, _MAX_ANALYSIS_LIMIT)
         
         # Se tiver range de tempo
         if start_timestamp and end_timestamp:
@@ -83,12 +71,12 @@ def dados_para_analise():
                     'error': '"start" deve ser menor que "end"'
                 }), 400
             
-            # Valida período máximo (30 dias)
-            max_period = 30 * 86400
+            # Valida período máximo
+            max_period = _MAX_ANALYSIS_DAYS * _SECONDS_PER_DAY
             if (end_timestamp - start_timestamp) > max_period:
                 return jsonify({
                     'success': False,
-                    'error': 'Período máximo: 30 dias'
+                    'error': f'Período máximo: {_MAX_ANALYSIS_DAYS} dias'
                 }), 400
             
             readings = db.get_readings_by_timerange(
@@ -100,7 +88,7 @@ def dados_para_analise():
             periodo_info = {
                 'start': start_timestamp,
                 'end': end_timestamp,
-                'dias': round((end_timestamp - start_timestamp) / 86400, 2)
+                'dias': round((end_timestamp - start_timestamp) / _SECONDS_PER_DAY, 2)
             }
         else:
             # Apenas leituras recentes
