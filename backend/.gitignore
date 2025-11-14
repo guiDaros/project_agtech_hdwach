@@ -1,3 +1,4 @@
 __pycache__
 venv
-dados
+dados.db
+agtech_history.db

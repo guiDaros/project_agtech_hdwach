@@ -115,7 +115,7 @@ import sys
 sys.path.append('.')
 
 # Importa as configurações do backend/config.py
-from config import UPSTASH_REDIS_URL, RABBITMQ_QUEUE_NAME, REDIS_RISK_KEY, REDIS_LATEST_DATA_KEY
+from config import CLOUD_AMQP_URL, UPSTASH_REDIS_URL, RABBITMQ_QUEUE_NAME, REDIS_RISK_KEY, REDIS_LATEST_DATA_KEY
 # Importa a lógica de análise do backend/analysis_logic.py
 from analysis_logic import calcular_risco, formatar_resultado_cache 
 
