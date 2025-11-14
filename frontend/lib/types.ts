@@ -29,3 +29,12 @@ export interface ChartDataPoint {
   umidadeSolo?: number
   luminosidade?: number
 }
+
+export interface WeatherForecast {
+  temperatura: number
+  velocidadeVento: number
+  condicao: "ensolarado" | "nublado" | "chuva"
+  precipitacao?: number
+  localizacao: string
+  timestamp: Date
+}

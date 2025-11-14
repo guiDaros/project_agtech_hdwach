@@ -1,37 +1,5 @@
 "use client"
 
-import { Sprout } from "lucide-react"
-
-export default function MonitoringHeader() {
-  return (
-    <header className="monitoring-header border-b bg-card shadow-sm">
-      <div className="monitoring-header__container flex items-center justify-between px-6 py-4">
-        <div className="monitoring-header__branding flex items-center gap-3">
-          <div className="monitoring-header__icon flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-            <Sprout className="w-7 h-7 text-primary" />
-          </div>
-          <h1 className="monitoring-header__title text-xl font-bold text-balance">
-            Sistema de Monitoramento Inteligente de Risco de Pragas
-          </h1>
-        </div>
-
-        <div className="monitoring-header__controls flex items-center gap-3">
-          <span className="plant-label text-sm font-medium text-muted-foreground">Cultura:</span>
-          <span className="plant-badge px-4 py-2 rounded-lg bg-primary/10 text-primary font-bold">
-            Soja
-          </span>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-/* ============================================================
-   VERSÃO COM SELETOR (COMENTADA - ATIVAR QUANDO BACKEND SUPORTAR)
-   ============================================================
-
-"use client"
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sprout } from "lucide-react"
 
@@ -69,5 +37,3 @@ export default function MonitoringHeader({ selectedPlant, onPlantChange }: Monit
     </header>
   )
 }
-
-*/
