@@ -1,82 +1,71 @@
 "use client"
 
+import { fetchSensorData } from "@/lib/api" 
+import { SensorData } from "@/lib/api"
 import { useEffect, useState } from "react"
 import SensorDataCard from "@/components/sensor-data-card"
 import WeatherForecast from "@/components/weather-forecast"
-import { Thermometer, Droplets, Droplet, Sun } from "lucide-react"
-
-export interface SensorReadings {
-  temperatura: number | null
-  umidadeAr: number | null
-  umidadeSolo: number | null
-  luminosidade: number | null
-  timestamp?: string
-}
+import { Thermometer, Droplets, Droplet, Sun, Waves } from "lucide-react"
 
 export default function SensorsSidebar() {
-  const [sensorReadings, setSensorReadings] = useState<SensorReadings>({
-    temperatura: null,
-    umidadeAr: null,
-    umidadeSolo: null,
-    luminosidade: null,
-  })
+  const [data, setData] = useState<SensorData | null>(null)
+  const [isLoading, setIsLoading] = useState(true) 
 
   useEffect(() => {
-    // TODO: Conectar com API do backend para receber dados dos sensores
-    // Exemplo de implementação futura:
-    // const fetchSensorData = async () => {
-    //   const response = await fetch('/api/sensors')
-    //   const data = await response.json()
-    //   setSensorReadings(data)
-    // }
-    // fetchSensorData()
-    // const interval = setInterval(fetchSensorData, 5000) // Atualizar a cada 5 segundos
-    // return () => clearInterval(interval)
-  }, [])
+    console.log("Sidebar montou. Buscando dados da API...")
+
+    async function loadSensorData() {
+      try {
+        setIsLoading(true)
+        const apiData = await fetchSensorData() 
+        setData(apiData)
+        console.log("Dados recebidos!", apiData)
+      } catch (error) {
+        console.error("Erro ao buscar dados no sidebar:", error)
+        setData(null) 
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadSensorData()
+  }, []) 
 
   return (
-    <aside className="sensors-sidebar w-80 border-r bg-sidebar p-6 overflow-y-auto">
-      <div className="sensors-sidebar__content space-y-4">
-        <WeatherForecast />
-
-        <div className="sensors-sidebar__header border-l-4 border-primary pl-4 bg-primary/5 py-3 rounded-r">
-          <h2 className="sensors-sidebar__title text-lg font-bold mb-1">Sensores em Tempo Real</h2>
-          <p className="sensors-sidebar__status text-sm text-muted-foreground">Aguardando dados dos sensores</p>
-        </div>
-
-        <div className="sensors-sidebar__cards space-y-3">
-          <SensorDataCard
-            icon={<Thermometer className="w-5 h-5" />}
-            label="Temperatura"
-            value={sensorReadings.temperatura}
-            unit="°C"
-            colorClass="temperatura"
-          />
-
-          <SensorDataCard
-            icon={<Droplets className="w-5 h-5" />}
-            label="Umidade do Ar"
-            value={sensorReadings.umidadeAr}
-            unit="%"
-            colorClass="umidade-ar"
-          />
-
-          <SensorDataCard
-            icon={<Droplet className="w-5 h-5" />}
-            label="Umidade do Solo"
-            value={sensorReadings.umidadeSolo}
-            unit="%"
-            colorClass="umidade-solo"
-          />
-
-          <SensorDataCard
-            icon={<Sun className="w-5 h-5" />}
-            label="Luminosidade"
-            value={sensorReadings.luminosidade}
-            unit="%"
-            colorClass="luminosidade"
-          />
-        </div>
+    <aside className="sensors-sidebar w-80 p-4 border-r overflow-y-auto">
+      <h2 className="text-lg font-semibold mb-4">Sensores Atuais</h2>
+      
+      {isLoading && <p className="text-muted-foreground">Carregando sensores...</p>}
+      
+      <div className="space-y-4">
+        <SensorDataCard
+          icon={<Thermometer size={20} />}
+          label="Temperatura"
+          value={data ? data.temperatura : null}
+          unit="°C"
+          colorClass="temperatura"
+        />
+        <SensorDataCard
+          icon={<Droplet size={20} />}
+          label="Umidade do Ar"
+          value={data ? data.umidadeAr : null}
+          unit="%"
+          colorClass="umidade-ar"
+        />
+        <SensorDataCard
+          icon={<Waves size={20} />}
+          label="Umidade do Solo"
+          value={data ? data.umidadeSolo : null}
+          unit="%"
+          colorClass="umidade-solo"
+        />
+        <SensorDataCard
+          icon={<Sun size={20} />}
+          label="Luminosidade"
+          value={data ? data.luminosidade : null}
+          unit="lux"
+          colorClass="luminosidade"
+        />
       </div>
     </aside>
   )
