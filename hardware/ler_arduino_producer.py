@@ -13,10 +13,10 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from backend.config import CLOUD_AMQP_URL, RABBITMQ_QUEUE_NAME
 
-# Modo de Simulação: Ativado se a variável de ambiente SIMULATE_DATA for 'true'
+# Modo de Simulação: Ativado se a variável de ambiente SIMULATE_DATA for 'true' usei pra testes sem os sensores
 SIMULATE_MODE = os.environ.get('SIMULATE_DATA', 'false').lower() == 'true'
 
-# Tenta importar 'pyserial'
+# Tenta importar pyserial, com tratamento caso nao de.
 SERIAL_AVAILABLE = False
 try:
     import serial
@@ -51,7 +51,7 @@ def connect_rabbitmq():
         return None, None
 
 def publish_message(channel, data):
-    """Publica a mensagem JSON na fila RabbitMQ."""
+    """Publica a mensagem JSON na fila."""
     if channel is None:
         return False
         
@@ -104,7 +104,7 @@ def encontrar_porta_arduino():
         try:
             ser = serial.Serial(porta, BAUD_RATE, timeout=TIMEOUT_SERIAL)
             time.sleep(2) # Aguarda Arduino resetar
-            print(f"✅ Arduino encontrado em: {porta}")
+            print(f" Arduino encontrado em: {porta}")
             return ser
         except (serial.SerialException, FileNotFoundError):
             continue
@@ -112,11 +112,11 @@ def encontrar_porta_arduino():
 
 def conectar_arduino():
     """Conecta na porta serial do Arduino (Lógica do Script 1, mais robusta)."""
-    print("🔍 Procurando Arduino...")
+    print("Procurando Arduino...")
     ser = encontrar_porta_arduino()
     
     if ser is None:
-        print("❌ Arduino não encontrado!")
+        print("Arduino não encontrado!")
         sys.exit(1)
     return ser
 
@@ -184,8 +184,8 @@ def _run_simulation_loop(channel):
 def _run_hardware_loop(channel, arduino):
     """Loop principal para leitura do hardware (Lógica do Script 1)."""
     print("🚀 Iniciando monitoramento... (Modo Hardware)")
-    print(f"📡 Arduino: {arduino.port}")
-    print(f"⏱️  Intervalo: 10 segundos (configurado no Arduino)")
+    print(f" Arduino: {arduino.port}")
+    print(f"Intervalo: 10 segundos (configurado no Arduino)")
     
     arduino.reset_input_buffer()
     contador_leituras = 0
@@ -235,7 +235,7 @@ def _run_hardware_loop(channel, arduino):
         
         except serial.SerialException as e:
             print(f"\n❌ Erro na comunicação serial: {e}")
-            print("🔄 Tentando reconectar...")
+            print("Tentando reconectar...")
             arduino.close()
             arduino = conectar_arduino()
             if arduino is None:
@@ -243,7 +243,7 @@ def _run_hardware_loop(channel, arduino):
             arduino.reset_input_buffer()
         
         except Exception as e:
-            print(f"❌ Erro inesperado no loop hardware: {e}")
+            print(f"Erro inesperado no loop hardware: {e}")
             contador_erros += 1
             time.sleep(1)
 
@@ -279,7 +279,7 @@ def main():
                     break # Falha ao conectar no Arduino, encerra
                     
         except KeyboardInterrupt:
-            print("\n🛑 Encerrando Produtor.")
+            print("\n Encerrando Produtor.")
             reconnect_needed = False
             break
         except Exception as e:

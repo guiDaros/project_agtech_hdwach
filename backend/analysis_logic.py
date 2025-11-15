@@ -49,7 +49,7 @@
 #         "nivel_geral": nivel_geral
 #     }
     
-#     return json.dumps(cache_data)
+#     return cache_data
 
 # ======================================================
 # codigo novo
