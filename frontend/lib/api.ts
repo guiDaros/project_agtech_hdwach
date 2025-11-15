@@ -1,79 +1,86 @@
-// Arquivo preparado para integração futura com backend
-
 export interface SensorData {
-  temperatura: number
-  umidadeAr: number
-  umidadeSolo: number
-  luminosidade: number
-  timestamp: string
+  temperatura: number;
+  umidadeAr: number;
+  umidadeSolo: number;
+  luminosidade: number;
+  timestamp: string;
 }
 
 export interface PestRisk {
-  praga: string
-  risco: number
-  status: "baixo" | "médio" | "alto"
+  praga: string;
+  risco: number;
+  status: "baixo" | "médio" | "alto";
 }
 
 export interface HistoricalData {
-  hora: string
-  temperatura: number
-  umidadeAr: number
-  umidadeSolo: number
-  luminosidade: number
+  timestamp: string; 
+  temperatura: number;
+  umidadeAr: number;
+  umidadeSolo: number;
+  luminosidade: number;
 }
 
-// Configuração da URL da API - substituir pela URL real
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://0.0.0.0:5000/api"
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
 
-/**
- * Busca dados atuais dos sensores
- * @param plant - Tipo de planta (soja ou milho)
- */
-export async function fetchSensorData(plant: "soja" | "milho"): Promise<SensorData> {
+export async function fetchSensorData(): Promise<SensorData> {
   try {
-    const response = await fetch(`${API_BASE_URL}/sensors/current?plant=${plant}`)
-    if (!response.ok) throw new Error("Erro ao buscar dados dos sensores")
-    return await response.json()
+    const response = await fetch(`${API_BASE_URL}/latest`);
+    if (!response.ok) throw new Error("Erro ao buscar dados dos sensores");
+    const data = await response.json();
+
+    if (data.success) {
+      return data.tempo_real.dados_brutos;
+    } else {
+      throw new Error(data.message || "Erro ao buscar dados");
+    }
   } catch (error) {
-    console.error("Erro na API:", error)
-    // Retorna dados mock em caso de erro
+    console.error("Erro na API (fetchSensorData):", error); 
     return {
       temperatura: 28.5,
       umidadeAr: 65,
       umidadeSolo: 42,
       luminosidade: 78,
       timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+export async function fetchHistoricalData(
+  hours = 24
+): Promise<HistoricalData[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/historical/${hours}`);
+    if (!response.ok) throw new Error("Erro ao buscar dados históricos");
+    const data = await response.json();
+
+    if (data.success) {
+      return data.historico;
+    } else {
+      return [];
     }
+  } catch (error) {
+    console.error("Erro na API (fetchHistoricalData):", error);
+    return [];
   }
 }
 
-/**
- * Busca dados históricos dos sensores
- * @param plant - Tipo de planta (soja ou milho)
- * @param hours - Número de horas de histórico (padrão: 24)
- */
-export async function fetchHistoricalData(plant: "soja" | "milho", hours = 24): Promise<HistoricalData[]> {
+export async function fetchPestRisk(): Promise<PestRisk[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/sensors/historical?plant=${plant}&hours=${hours}`)
-    if (!response.ok) throw new Error("Erro ao buscar dados históricos")
-    return await response.json()
-  } catch (error) {
-    console.error("Erro na API:", error)
-    return []
-  }
-}
+    // MUDANÇA: Chamando a nova rota /api/analysis/risk
+    const response = await fetch(`${API_BASE_URL}/analysis/risk`);
+    
+    if (!response.ok) throw new Error("Erro ao buscar risco de pragas");
+    
+    const data = await response.json();
 
-/**
- * Busca probabilidade de pragas
- * @param plant - Tipo de planta (soja ou milho)
- */
-export async function fetchPestRisk(plant: "soja" | "milho"): Promise<PestRisk[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/pests/risk?plant=${plant}`)
-    if (!response.ok) throw new Error("Erro ao buscar risco de pragas")
-    return await response.json()
+    if (data.success && data.risks) {
+      return data.risks;
+    } else {
+      return [];
+    }
   } catch (error) {
-    console.error("Erro na API:", error)
-    return []
+    console.error("Erro na API (fetchPestRisk):", error);
+    return [];
   }
 }

@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 interface SensorDataCardProps {
   icon: ReactNode
   label: string
-  value: number | null
+  value: number | null | undefined
   unit: string
   colorClass: "temperatura" | "umidade-ar" | "umidade-solo" | "luminosidade"
 }
@@ -44,7 +44,8 @@ export default function SensorDataCard({ icon, label, value, unit, colorClass }:
             <span className="sensor-data-card__label text-sm font-semibold text-foreground">{label}</span>
           </div>
           <div className="sensor-data-card__value flex items-baseline gap-1">
-            {value !== null ? (
+
+            {typeof value === 'number' ? (
               <>
                 <span className={`sensor-data-card__number text-3xl font-bold ${colors.text}`}>{value.toFixed(1)}</span>
                 <span className="sensor-data-card__unit text-lg font-medium text-muted-foreground">{unit}</span>
@@ -52,6 +53,7 @@ export default function SensorDataCard({ icon, label, value, unit, colorClass }:
             ) : (
               <span className="sensor-data-card__placeholder text-2xl font-bold text-muted-foreground">--</span>
             )}
+
           </div>
         </div>
       </div>

@@ -1,110 +1,122 @@
-from flask import Blueprint, request, jsonify
-from database import db
-import time
-
-# Blueprint para rotas de análise
+import json
+from flask import Blueprint, jsonify
+from extensions import redis_client
+from config import REDIS_LATEST_DATA_KEY
 analysis_bp = Blueprint('analysis', __name__)
 
-# Constantes de configuração para este blueprint
-_SECONDS_PER_DAY = 86400
-_DEFAULT_LIMIT = 100
-_MAX_ANALYSIS_LIMIT = 1000
-_MAX_ANALYSIS_DAYS = 30
+# (Regras e KEY_MAP não mudam)
+PRAGAS_SOJA_REGRAS = {
+    "Lagarta-da-soja": {"temp": (22, 34), "umidade": (60, 90), "solo": (300, 700), "luz": (0, 600)},
+    "Percevejo-marrom": {"temp": (20, 32), "umidade": (30, 70), "solo": (600, 900), "luz": (0, 500)},
+    "Mosca-branca": {"temp": (24, 34), "umidade": (30, 60), "solo": (600, 950), "luz": (0, 400)}
+}
+KEY_MAP = {
+    "temp": "temperatura",
+    "umidade": "umidade_ar",
+    "solo": "umidade_solo",
+    "luz": "luminosidade"
+}
 
 
-@analysis_bp.route('/analise/estatisticas', methods=['GET'])
-def estatisticas_gerais():
+# ==========================================================
+# === A NOVA LÓGICA DE CÁLCULO (GRADUAL) ===
+# ==========================================================
+def _calculate_pest_probabilities(dados_brutos):
     """
-    Retorna estatísticas agregadas básicas do banco
+    Calcula uma probabilidade percentual (0-100) para cada praga,
+    baseado em quão "ideal" o valor atual está dentro da faixa de risco.
     """
-    try:
-        stats = db.get_statistics()
-        
-        if not stats or stats.get('total_registros', 0) == 0:
-            return jsonify({
-                'success': False,
-                'error': 'Nenhum dado disponível'
-            }), 404
-        
-        # Calcula período de coleta
-        if stats['primeira_leitura'] and stats['ultima_leitura']:
-            periodo_dias = (stats['ultima_leitura'] - stats['primeira_leitura']) / _SECONDS_PER_DAY
-            stats['periodo_coleta_dias'] = round(periodo_dias, 2)
-        
-        return jsonify({
-            'success': True,
-            'data': stats
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': 'Erro ao calcular estatísticas',
-            'details': str(e)
-        }), 500
+    probabilidades = {}
+    if not dados_brutos:
+        return {}
 
+    for praga, regras in PRAGAS_SOJA_REGRAS.items():
+        factor_scores = [] # Lista para guardar os scores (0.0 a 1.0) de cada fator
 
-@analysis_bp.route('/analise/dados', methods=['GET'])
-def dados_para_analise():
-    """
-    Retorna dados brutos para o Edu processar com Pandas
-    
-    Query params opcionais:
-    - start: timestamp inicial (Unix)
-    - end: timestamp final (Unix)
-    - limit: máximo de registros (padrão: 100, máx: 1000)
-    """
-    try:
-        # Parâmetros opcionais
-        start_timestamp = request.args.get('start', type=int)
-        end_timestamp = request.args.get('end', type=int)
-        limit = request.args.get('limit', default=_DEFAULT_LIMIT, type=int)
-        
-        # Limita máximo de registros (proteção da Raspberry)
-        limit = min(limit, _MAX_ANALYSIS_LIMIT)
-        
-        # Se tiver range de tempo
-        if start_timestamp and end_timestamp:
-            if start_timestamp >= end_timestamp:
-                return jsonify({
-                    'success': False,
-                    'error': '"start" deve ser menor que "end"'
-                }), 400
+        for regra_key, (min_val, max_val) in regras.items():
+            dado_key = KEY_MAP.get(regra_key)
             
-            # Valida período máximo
-            max_period = _MAX_ANALYSIS_DAYS * _SECONDS_PER_DAY
-            if (end_timestamp - start_timestamp) > max_period:
-                return jsonify({
-                    'success': False,
-                    'error': f'Período máximo: {_MAX_ANALYSIS_DAYS} dias'
-                }), 400
-            
-            readings = db.get_readings_by_timerange(
-                start_timestamp=start_timestamp,
-                end_timestamp=end_timestamp,
-                limit=limit
-            )
-            
-            periodo_info = {
-                'start': start_timestamp,
-                'end': end_timestamp,
-                'dias': round((end_timestamp - start_timestamp) / _SECONDS_PER_DAY, 2)
-            }
+            if not dado_key or dado_key not in dados_brutos:
+                print(f"Aviso: Chave '{dado_key}' (para '{regra_key}') não encontrada.")
+                factor_scores.append(0.0) # Se o sensor falhar, 0% de risco para esse fator
+                continue 
+
+            valor_atual = dados_brutos[dado_key]
+
+            # --- Lógica de Risco Gradual ---
+            factor_score = 0.0 # Risco é 0 se estiver FORA da faixa
+            if min_val <= valor_atual <= max_val:
+                # O valor está na faixa de risco.
+                # Calculamos o quão perto do "ponto ideal" (o centro) ele está.
+                center = (min_val + max_val) / 2
+                max_distance = (max_val - min_val) / 2
+                
+                # Evita divisão por zero se min_val == max_val
+                if max_distance == 0:
+                    # Se min == max e o valor bateu, é 100%
+                    factor_score = 1.0 if valor_atual == center else 0.0
+                else:
+                    current_distance = abs(valor_atual - center)
+                    # (1.0 - (distancia_atual / distancia_maxima))
+                    # Perto do centro -> (1.0 - ~0.0) -> ~1.0 (Risco Alto)
+                    # Perto da borda -> (1.0 - ~1.0) -> ~0.0 (Risco Baixo)
+                    factor_score = 1.0 - (current_distance / max_distance)
+
+            factor_scores.append(factor_score)
+        
+        # A probabilidade final é a MÉDIA dos scores de todos os fatores
+        if factor_scores:
+            probabilidade_total = (sum(factor_scores) / len(factor_scores)) * 100
+            probabilidades[praga] = round(probabilidade_total, 1) # Arredonda
         else:
-            # Apenas leituras recentes
-            readings = db.get_recent_readings(limit=limit)
-            periodo_info = None
+            probabilidades[praga] = 0
+
+    return probabilidades
+# ==========================================================
+# === FIM DA NOVA LÓGICA ===
+# ==========================================================
+
+
+@analysis_bp.route('/risk', methods=['GET'])
+def get_pest_risk_analysis():
+    # (O resto desta função está correto e não muda)
+    
+    if not redis_client:
+        return jsonify({'error': 'Redis service unavailable'}), 503
+
+    try:
+        data_json = redis_client.get(REDIS_LATEST_DATA_KEY)
+        if not data_json:
+            return jsonify({'success': False, 'message': 'Nenhum dado no cache.'}), 404
         
+        data = json.loads(data_json)
+        dados_brutos = data.get('dados_brutos') 
+
+        if not dados_brutos:
+            return jsonify({'success': False, 'message': 'Cache em formato inesperado (sem "dados_brutos").'}), 404
+
+        # Esta função agora faz o cálculo "real"
+        probabilidades = _calculate_pest_probabilities(dados_brutos)
+
+        risk_list = []
+        for praga, risco in probabilidades.items():
+            status = "baixo"
+            if risco > 70:
+                status = "alto"
+            elif risco > 40:
+                status = "médio"
+            
+            risk_list.append({
+                "praga": praga,
+                "risco": risco,
+                "status": status
+            })
+
         return jsonify({
             'success': True,
-            'count': len(readings),
-            'periodo': periodo_info,
-            'data': readings
+            'risks': risk_list 
         }), 200
-    
+
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': 'Erro ao buscar dados',
-            'details': str(e)
-        }), 500
+        print(f"Erro em /analysis/risk: {e}")
+        return jsonify({'error': 'Erro interno ao calcular riscos'}), 500
