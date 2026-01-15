@@ -25,18 +25,6 @@ Desenvolvido como projeto da disciplina **Hardware Architecture (2025.2)**, este
 
 ---
 
-## 🎥 Demonstração
-
-### Dashboard Principal
-![Dashboard](docs/images/dashboard.png)
-
-### Alertas de Risco
-![Alertas](docs/images/alertas.png)
-
-### Gráficos em Tempo Real
-![Gráficos](docs/images/graficos.png)
-
----
 
 ## 🏗️ Arquitetura Distribuída (Microsserviços) 🚀
 
